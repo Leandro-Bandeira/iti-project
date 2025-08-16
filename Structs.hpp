@@ -7,12 +7,22 @@ using namespace std;
 struct TNode{
   vector<bool>alphabet;
   double probValue;   
-  bool isroot = false;
+  bool isroot;
   char symbol;
-  double counter;
-  TNode* vine = nullptr;
-  TNode* rigthPointer = nullptr;
-  TNode* downPointer = nullptr;
+  int counter;
+  TNode* vine;
+  TNode* rigthPointer;
+  TNode* downPointer;
+
+  TNode() {
+        symbol = 0;
+        counter = 0;
+        isroot = false;
+        probValue = 0.0;
+        vine = nullptr;
+        rigthPointer = nullptr;
+        downPointer = nullptr;
+    }
 };
 
 #endif 
