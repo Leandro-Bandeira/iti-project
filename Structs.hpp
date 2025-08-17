@@ -26,7 +26,8 @@ struct TNode{
   TNode* downPointer;
   TNode* lastCreate; /* Ultimo no criado do pai */
   Context* context;
-  
+  int heigth;
+    
   TNode() {
         symbol = 0;
         counter = 0;
@@ -34,9 +35,10 @@ struct TNode{
         probValue = 0.0;
         vine = nullptr;
         rigthPointer = nullptr;
-        downPointer = nullptr;
+        downPointer = nullptr; /* Primeiro filho */
         context = nullptr;
         lastCreate = nullptr;
+        heigth = -1;
     }
 };
 
