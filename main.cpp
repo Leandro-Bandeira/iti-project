@@ -27,7 +27,6 @@ int main(){
     int k = 2;
     /* Inicia todo o alfabeto como false */
     vector <bool> alphabet(256,false);
-    vector <bool> readAlphabet(256,false);
     
     /* Conseguimos definir quais letras aparecem no nosso alfabeto */
     for(unsigned char c : msg){
@@ -37,6 +36,7 @@ int main(){
     /* Calcula a quantia simbolos que apareceram */
     root.counter = accumulate(alphabet.begin(), alphabet.end(), 0);
 
+    
     int diffElements = root.counter;
     /* Com isso definimos a nossa probabilidade */ 
     root.alphabet = alphabet;
@@ -44,21 +44,28 @@ int main(){
     cout << "Primeiro valor de equiprobabilidade: " << root.probValue << "\n"; 
 
     TNode* base = &root;
+    TNode* lastBase = nullptr;
     int count = 0;
+    int countDecodRoot = 0; // Quantia de simbolos codificados no root
     int count_msg = 0;
     for(unsigned char c: msg){
-        readAlphabet[static_cast<int>(c)] = 1;
-
-        if(accumulate(readAlphabet.begin(), readAlphabet.end(), 0) == diffElements) break;
         
         double currentProb = 0.0;
         double currentProb_ro = 0.0;
         int minusCounter = 0; /* Contador responsavel pela exclusao */
         cout << "Lendo: " << c << "\n";
         TNode* cBase = base;
-        TNode* childCreated = nullptr; /* Ultimo vine acessado */
         
-        while(cBase != nullptr){     
+        if(lastBase){
+            cout << "Alterando base para lastBase: " << lastBase->symbol << endl;
+            cBase = lastBase->vine;
+        }
+        lastBase = nullptr;
+        TNode* childCreated = nullptr; /* Ultimo vine acessado */
+        TNode* foundedChild = nullptr; /* Ultimo filho encontrado*/
+        bool attBase = false;
+        while(cBase != nullptr){
+                
             /* Verificamos se base esta apontado para o root */
             if(cBase->isroot){
                 int idx = static_cast<int>(c);
@@ -67,6 +74,7 @@ int main(){
                 */
                 if(cBase->alphabet[idx]){
                     cBase->alphabet[c] = false;
+                    countDecodRoot += 1;
                     currentProb = cBase->probValue;
                     cout << "O caracter (" << c << ") foi codificado com probabilidade: " << currentProb << "\n";
                     
@@ -75,7 +83,7 @@ int main(){
                     cBase->probValue =  1.0 / cBase->counter;
                 
                     /* Criando filho da raiz */
-                
+                    
                     TNode* child = createChild(&root, c);
                 
                     if (count == 0){ 
@@ -87,7 +95,8 @@ int main(){
                         root.context->counter = root.context->counter_ro + 1;
                     }
                     else{
-                        currentProb_ro = (double)root.context->counter_ro - minusCounter / root.context->counter;
+                        cout << root.context->counter << " " << minusCounter << "\n";
+                        currentProb_ro = (double)root.context->counter_ro / (root.context->counter - minusCounter);
                         cout << "Codificacao do ro: " << currentProb_ro << "\n";
                         root.context->counter_ro += 1;
                         root.context->counter += 2;
@@ -95,8 +104,16 @@ int main(){
                         lastCreate->rigthPointer = child;
                         root.lastCreate = child;
                     }
-                
-                    if(childCreated)childCreated->vine = child;
+                    
+                    if(countDecodRoot == diffElements){ 
+                        root.context->counter -= root.context->counter_ro; // Remove a presenca do ro em k = 0, caso codifiquemos tudo
+                        root.context->counter_ro = 0;
+                    }
+                    if(childCreated){
+                        cout << childCreated->symbol << endl;
+                        childCreated->vine = child;
+                        cout << "oiii" << endl;
+                    }
                 }
                 else{
                     /* Caso ele nao exista na raiz, vamos percorrer os filhos da raiz */
@@ -105,8 +122,10 @@ int main(){
                     while(cNode){
                         if(cNode->symbol == c){
                             currentProb = (double)cNode->counter / root.context->counter;
+                            cout << cNode->counter << " " << root.context->counter << endl;
                             cout << "Codificando (" << c << ") em k == 0 com probabilidade: " << currentProb << "\n";
                             cNode->counter++;
+                            root.context->counter += 1;
                             if(childCreated)childCreated->vine = cNode;
                             break;
                         }
@@ -151,16 +170,18 @@ int main(){
                     int totalMiss = 0;
                     while(cNode){
                         char currentSymbol = cNode->symbol;
+                        totalMiss += 1;
                         if(currentSymbol == c){
                             cout << "Filho encontrado codificado com" << endl; 
-                            currentProb = (double)cNode->counter / cNode->context->counter;
+                            currentProb = (double)cNode->counter / cBase->context->counter;
                             cout << "prob: " << currentProb << "\n"; 
                             cNode->counter += 1;
-                            cNode->context->counter++;
+                            cBase->context->counter++;
                             found = true;
+                            foundedChild = cNode;
                             break;
                         }
-                        totalMiss += 1;
+                        
                         cNode = cNode->rigthPointer;
                     }
 
@@ -175,24 +196,50 @@ int main(){
                         lastCreate->rigthPointer = child;
                         
                         /* Codificando p */
-                        currentProb_ro = ((double)cBase->context->counter_ro - minusCounter)  / cBase->context->counter;
+                        currentProb_ro = (double)cBase->context->counter_ro  / (cBase->context->counter - minusCounter);
                         cout << "Codificando ro com probabilidade: " << currentProb_ro << endl;
 
                         cBase->context->counter_ro += 1;
                         cBase->context->counter += 2;
                     }
                     minusCounter = totalMiss;
+                    cout << "Quantia de remocao na exclusao: " << minusCounter << endl;
                 }
 
                 /* Atualiza o base */
-                if(child->heigth < k){ 
-                    base = child;
-                }else{
-                    base = child->vine;
+                
+                if(foundedChild){
+                    
+                    
+                    if(foundedChild->heigth < k){
+                        cout << "atualizando base" << endl;
+                        base = foundedChild;
+                        lastBase = nullptr;
+                    }else{
+                        cout << "Nao criou novo filho, mas achou filho\n";
+                        lastBase = foundedChild;
+                    }
+                    attBase = true;
+                    break;
                 }
-
-                cBase = cBase->vine;
+                else{
+                    /* So atualiza o base na primeira adicao */
+                    if(!attBase){   
+                        if(child->heigth < k){
+                            base = child;
+                            lastBase = nullptr;
+                        }else{
+                            lastBase = child; /* Salva para adicionar o base como vine no futuro*/
+                            
+                        }
+                        attBase = true;
+                    }
+                    cBase = cBase->vine;
+                }
+                
+                
             }
+            
         
         }     
     }
