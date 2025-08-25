@@ -2,6 +2,7 @@
 #include <vector>
 #include <string>
 #include <numeric>
+#include <fstream>
 
 #include "Structs.hpp"
 
@@ -20,17 +21,34 @@ TNode* createChild(TNode* father, unsigned char symbol){
 
 
 int main(){
+    
+    
     TNode root;
     root.isroot = true;
-    
-    string msg = "abracadabra";
     int k = 2;
+
+
+    std::ifstream file("test.txt", std::ios::binary); 
+    if (!file.is_open()) {
+        std::cerr << "Erro ao abrir arquivo!" << std::endl;
+        return 1;
+    }
+
+    std::vector<unsigned char> data;
+    char c;
+    while (file.get(c)) {
+        data.push_back(static_cast<unsigned char>(c));
+    }
+
+    file.close();
+
+
+
     /* Inicia todo o alfabeto como false */
     vector <bool> alphabet(256,false);
-    
-    /* Conseguimos definir quais letras aparecem no nosso alfabeto */
-    for(unsigned char c : msg){
-        int idx = static_cast<int>(c);
+    /* Conseguimos definir quais bytes aparecem no nosso alfabeto */
+    for (unsigned char b : data) {
+        int idx = static_cast<int>(b);
         alphabet[idx] = true;
     }
     /* Calcula a quantia simbolos que apareceram */
@@ -48,7 +66,7 @@ int main(){
     int count = 0;
     int countDecodRoot = 0; // Quantia de simbolos codificados no root
     int count_msg = 0;
-    for(unsigned char c: msg){
+    for(unsigned char c: data){
         
         double currentProb = 0.0;
         double currentProb_ro = 0.0;
@@ -112,7 +130,6 @@ int main(){
                     if(childCreated){
                         cout << childCreated->symbol << endl;
                         childCreated->vine = child;
-                        cout << "oiii" << endl;
                     }
                 }
                 else{

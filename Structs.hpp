@@ -2,6 +2,8 @@
 #define STRUCTS
 
 #include <vector>
+#include <string>
+
 using namespace std;
 
 /* Struct referente ao contexto */
@@ -19,7 +21,7 @@ struct TNode{
   vector<bool>alphabet;
   double probValue;   
   bool isroot;
-  char symbol;
+  unsigned char symbol;
   int counter;
   TNode* vine;
   TNode* rigthPointer;
@@ -42,4 +44,11 @@ struct TNode{
     }
 };
 
+
+struct Arimetic{
+  double min;
+  double max;
+  
+
+};
 #endif 
