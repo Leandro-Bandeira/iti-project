@@ -22,7 +22,7 @@ TNode* createChild(TNode* father, unsigned char symbol){
 
 int main(){
     
-    
+    ArithmeticEncoder enconder;
     TNode root;
     root.isroot = true;
     int k = 2;
@@ -91,15 +91,6 @@ int main(){
                    Vamos codificar de acordo com equiprobabilidade e remover o alfabeto
                 */
                 if(cBase->alphabet[idx]){
-                    cBase->alphabet[c] = false;
-                    countDecodRoot += 1;
-                    currentProb = cBase->probValue;
-                    cout << "O caracter (" << c << ") foi codificado com probabilidade: " << currentProb << "\n";
-                    
-                    /* Precisamos atualizar a probabilidade do root */
-                    cBase->counter--;
-                    cBase->probValue =  1.0 / cBase->counter;
-                
                     /* Criando filho da raiz */
                     
                     TNode* child = createChild(&root, c);
@@ -111,6 +102,8 @@ int main(){
                         root.context = new Context();
                         root.context->counter_ro += 1;
                         root.context->counter = root.context->counter_ro + 1;
+                        
+                        
                     }
                     else{
                         cout << root.context->counter << " " << minusCounter << "\n";
@@ -121,8 +114,18 @@ int main(){
                         TNode* lastCreate = root.lastCreate;
                         lastCreate->rigthPointer = child;
                         root.lastCreate = child;
+
+                        /* Criacao do alphabet para percorrer no encode */
+                        enconder.encode(cBase, '.', false, nullptr, currentProb_ro);
                     }
+                    enconder.encode(cBase, c, true, &cBase->alphabet, 0.0);
+                    cBase->alphabet[c] = false;
+                    currentProb = cBase->probValue;
+                    cout << "O caracter (" << c << ") foi codificado com probabilidade: " << currentProb << "\n";
                     
+                    /* Precisamos atualizar a probabilidade do root */
+                    cBase->counter--;
+                    cBase->probValue =  1.0 / cBase->counter;
                     if(countDecodRoot == diffElements){ 
                         root.context->counter -= root.context->counter_ro; // Remove a presenca do ro em k = 0, caso codifiquemos tudo
                         root.context->counter_ro = 0;
