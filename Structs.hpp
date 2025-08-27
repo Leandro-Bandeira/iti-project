@@ -11,7 +11,7 @@ struct Context{
   int counter; /* Contador total de elementos do contexto */
   int counter_ro; /* Contador do ro */
   
-  Context(){
+  Context(){       //"construtor"
     counter = 0;
     counter_ro = 0;
   }
@@ -30,7 +30,7 @@ struct TNode{
   Context* context;
   int heigth;
     
-  TNode() {
+  TNode() {           //"construtor"
         symbol = 0;
         counter = 0;
         isroot = false;
@@ -44,11 +44,4 @@ struct TNode{
     }
 };
 
-
-struct Arimetic{
-  double min;
-  double max;
-  
-
-};
 #endif 

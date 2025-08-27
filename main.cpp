@@ -8,6 +8,7 @@
 
 using namespace std;
 
+#define  k 2     //ordem do modelo
 
 TNode* createChild(TNode* father, unsigned char symbol){
     TNode* child = new TNode();
@@ -22,11 +23,8 @@ TNode* createChild(TNode* father, unsigned char symbol){
 
 int main(){
     
-    
     TNode root;
     root.isroot = true;
-    int k = 2;
-
 
     std::ifstream file("test.txt", std::ios::binary); 
     if (!file.is_open()) {
@@ -51,14 +49,14 @@ int main(){
         int idx = static_cast<int>(b);
         alphabet[idx] = true;
     }
-    /* Calcula a quantia simbolos que apareceram */
+    /* Calcula a quantia simbolos do alfabeto */
     root.counter = accumulate(alphabet.begin(), alphabet.end(), 0);
 
     
     int diffElements = root.counter;
     /* Com isso definimos a nossa probabilidade */ 
     root.alphabet = alphabet;
-    root.probValue = 1.0/ root.counter;
+    root.probValue = 1.0 / root.counter;
     cout << "Primeiro valor de equiprobabilidade: " << root.probValue << "\n"; 
 
     TNode* base = &root;
@@ -71,11 +69,11 @@ int main(){
         double currentProb = 0.0;
         double currentProb_ro = 0.0;
         int minusCounter = 0; /* Contador responsavel pela exclusao */
-        cout << "Lendo: " << c << "\n";
+        //cout << "Lendo: " << c << "\n";
         TNode* cBase = base;
         
         if(lastBase){
-            cout << "Alterando base para lastBase: " << lastBase->symbol << endl;
+            //cout << "Alterando base para lastBase: " << lastBase->symbol << endl;
             cBase = lastBase->vine;
         }
         lastBase = nullptr;
@@ -113,9 +111,9 @@ int main(){
                         root.context->counter = root.context->counter_ro + 1;
                     }
                     else{
-                        cout << root.context->counter << " " << minusCounter << "\n";
+                        //cout << root.context->counter << " " << minusCounter << "\n";
                         currentProb_ro = (double)root.context->counter_ro / (root.context->counter - minusCounter);
-                        cout << "Codificacao do ro: " << currentProb_ro << "\n";
+                        //cout << "Codificacao do ro: " << currentProb_ro << "\n";
                         root.context->counter_ro += 1;
                         root.context->counter += 2;
                         TNode* lastCreate = root.lastCreate;
@@ -139,8 +137,8 @@ int main(){
                     while(cNode){
                         if(cNode->symbol == c){
                             currentProb = (double)cNode->counter / root.context->counter;
-                            cout << cNode->counter << " " << root.context->counter << endl;
-                            cout << "Codificando (" << c << ") em k == 0 com probabilidade: " << currentProb << "\n";
+                            //cout << cNode->counter << " " << root.context->counter << endl;
+                            //cout << "Codificando (" << c << ") em k == 0 com probabilidade: " << currentProb << "\n";
                             cNode->counter++;
                             root.context->counter += 1;
                             if(childCreated)childCreated->vine = cNode;
@@ -154,7 +152,7 @@ int main(){
             
             }else{          
                 char currentSymbol = cBase->symbol;
-                cout << "Acessando node com simbolo: " << currentSymbol << "\n";
+                //cout << "Acessando node com simbolo: " << currentSymbol << "\n";
                 if (currentSymbol == c){
                     cBase->counter += 1;
                     break;
@@ -163,7 +161,7 @@ int main(){
                 /* Verifica se possui filhos, ou seja, se o contexto existe */
                 TNode* child = nullptr;
                 if(!cBase->downPointer){
-                    cout << "Criou o filho: " << c << "\n";
+                    //cout << "Criou o filho: " << c << "\n";
                     child = createChild(cBase, c);
                     if (childCreated)childCreated->vine = child;
                     
@@ -179,7 +177,7 @@ int main(){
 
                     
                 }else{
-                    cout << "Contexto ja existe, procurando filho: \n";
+                    //cout << "Contexto ja existe, procurando filho: \n";
                     /* Se o meu contexto exitir, devemos percorrer
                     os elementos daquele contexto da direita para a esquerda */
                     TNode* cNode = cBase->downPointer;
@@ -189,9 +187,9 @@ int main(){
                         char currentSymbol = cNode->symbol;
                         totalMiss += 1;
                         if(currentSymbol == c){
-                            cout << "Filho encontrado codificado com" << endl; 
+                            //cout << "Filho encontrado codificado com" << endl; 
                             currentProb = (double)cNode->counter / cBase->context->counter;
-                            cout << "prob: " << currentProb << "\n"; 
+                            //cout << "prob: " << currentProb << "\n"; 
                             cNode->counter += 1;
                             cBase->context->counter++;
                             found = true;
@@ -204,7 +202,7 @@ int main(){
 
                     /* Se ele nao foi encontrado, vamos adicionar */
                     if(!found){
-                        cout << "Simbolo nunca ocorreu nesse contexto\n";
+                        //cout << "Simbolo nunca ocorreu nesse contexto\n";
                         TNode* lastCreate = cBase->lastCreate;
                         child = createChild(cBase, c);
                         if(childCreated) childCreated->vine = child;
@@ -220,7 +218,7 @@ int main(){
                         cBase->context->counter += 2;
                     }
                     minusCounter = totalMiss;
-                    cout << "Quantia de remocao na exclusao: " << minusCounter << endl;
+                    //cout << "Quantia de remocao na exclusao: " << minusCounter << endl;
                 }
 
                 /* Atualiza o base */
@@ -229,11 +227,11 @@ int main(){
                     
                     
                     if(foundedChild->heigth < k){
-                        cout << "atualizando base" << endl;
+                        //cout << "atualizando base" << endl;
                         base = foundedChild;
                         lastBase = nullptr;
                     }else{
-                        cout << "Nao criou novo filho, mas achou filho\n";
+                        //cout << "Nao criou novo filho, mas achou filho\n";
                         lastBase = foundedChild;
                     }
                     attBase = true;
@@ -260,5 +258,6 @@ int main(){
         
         }     
     }
+    
     return 0;
 }
