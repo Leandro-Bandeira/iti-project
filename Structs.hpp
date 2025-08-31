@@ -6,10 +6,19 @@
 
 using namespace std;
 
-/* Struct referente ao contexto */
+/*=================================
+Estrutura de dados
+===================================
+
+o nivel que estamos na arvore diz respeito ao contexto (ou seja a arvore terá no máximo N+1 níveis)
+o nivel 0 é a raiz -> contexto 0 (ignorancia total)
+
+=================================== */
+
+
 struct Context{
-  int counter; /* Contador total de elementos do contexto */
-  int counter_ro; /* Contador do ro */
+  int counter;    //Contador total de elementos do contexto 
+  int counter_ro; // Contador do ro 
   
   Context(){       //"construtor"
     counter = 0;
@@ -22,11 +31,11 @@ struct TNode{
   double probValue;   
   bool isroot;
   unsigned char symbol;
-  int counter;
-  TNode* vine;
-  TNode* rigthPointer;
-  TNode* downPointer;
-  TNode* lastCreate; /* Ultimo no criado do pai */
+  int counter;          //??????????????????????????
+  TNode* vine;          //aponta para o contexto anterior
+  TNode* rigthPointer;  //aponta para o nó à direita (mesmo contexto)
+  TNode* downPointer;   //aponta para o FILHO esquerdo desse nó, próx. contexto  
+  TNode* lastCreate;    /* Ultimo no criado do pai */
   Context* context;
   int heigth;
     

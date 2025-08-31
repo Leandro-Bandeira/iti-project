@@ -8,7 +8,7 @@
 
 using namespace std;
 
-#define  k 2     //ordem do modelo
+#define model_order 2     //ordem do modelo
 
 TNode* createChild(TNode* father, unsigned char symbol){
     TNode* child = new TNode();
@@ -19,6 +19,8 @@ TNode* createChild(TNode* father, unsigned char symbol){
     father->lastCreate = child;
     return child;
 }
+
+
 
 
 int main(){
@@ -32,88 +34,78 @@ int main(){
         return 1;
     }
 
+    //le o arq byte por byte e define qual é o alfabeto existente--------------//
     std::vector<unsigned char> data;
     char c;
     while (file.get(c)) {
         data.push_back(static_cast<unsigned char>(c));
     }
-
     file.close();
 
-
-
-    /* Inicia todo o alfabeto como false */
     vector <bool> alphabet(256,false);
-    /* Conseguimos definir quais bytes aparecem no nosso alfabeto */
-    for (unsigned char b : data) {
-        int idx = static_cast<int>(b);
+    for (unsigned char b : data) {      //define quais bytes aparecem no alfabeto
+        int idx = static_cast<int>(b);        
         alphabet[idx] = true;
     }
-    /* Calcula a quantia simbolos do alfabeto */
-    root.counter = accumulate(alphabet.begin(), alphabet.end(), 0);
+    //----------------------------------------------------------------------------
 
-    
+
+    root.counter = accumulate(alphabet.begin(), alphabet.end(), 0);  //conta quantos simbolos diferentes no alfabeto existem
     int diffElements = root.counter;
-    /* Com isso definimos a nossa probabilidade */ 
     root.alphabet = alphabet;
     root.probValue = 1.0 / root.counter;
     cout << "Primeiro valor de equiprobabilidade: " << root.probValue << "\n"; 
-
-    TNode* base = &root;
-    TNode* lastBase = nullptr;
+     
+    TNode* base = &root;          //base irá apontar sempre para o último nó adicionado/atualizado
+    TNode* lastBase = nullptr;    
     int count = 0;
-    int countDecodRoot = 0; // Quantia de simbolos codificados no root
+    int countDecodRoot = 0; 
     int count_msg = 0;
     for(unsigned char c: data){
         
-        double currentProb = 0.0;
-        double currentProb_ro = 0.0;
-        int minusCounter = 0; /* Contador responsavel pela exclusao */
-        //cout << "Lendo: " << c << "\n";
-        TNode* cBase = base;
+        double currentProb = 0.0;      //probabilidade atual
+        double currentProb_ro = 0.0;   //probabilidade do rô
+        int minusCounter = 0;          /* Contador responsavel pela exclusao */
+        TNode* cBase = base;           //aponta para onde a base está apontando
         
-        if(lastBase){
-            //cout << "Alterando base para lastBase: " << lastBase->symbol << endl;
+        if(lastBase){          //se lastBase != 0 entao a cBase aponta pra outra coisa
             cBase = lastBase->vine;
         }
+
         lastBase = nullptr;
         TNode* childCreated = nullptr; /* Ultimo vine acessado */
         TNode* foundedChild = nullptr; /* Ultimo filho encontrado*/
-        bool attBase = false;
-        while(cBase != nullptr){
+        bool attBase = false;       
+
+        while(cBase != nullptr){  
                 
-            /* Verificamos se base esta apontado para o root */
-            if(cBase->isroot){
-                int idx = static_cast<int>(c);
-                /* Verificamos se o alfabeto esta na raiz, caso sim
-                   Vamos codificar de acordo com equiprobabilidade e remover o alfabeto
-                */
-                if(cBase->alphabet[idx]){
+            if(cBase->isroot){  //cbase está apontando pra raiz
+                
+                int idx = static_cast<int>(c); 
+            
+                if(cBase->alphabet[idx]){         //se o caractere existe ainda na root 
                     cBase->alphabet[c] = false;
                     countDecodRoot += 1;
                     currentProb = cBase->probValue;
+                    //=========DEVE-SE INCLUIR A CODIFICACAO AQUI =======================
                     cout << "O caracter (" << c << ") foi codificado com probabilidade: " << currentProb << "\n";
                     
-                    /* Precisamos atualizar a probabilidade do root */
-                    cBase->counter--;
-                    cBase->probValue =  1.0 / cBase->counter;
+                    //atualizacao dos contextos:
+                    cBase->counter--;                         //nao sei oq danado eh isso
+                    cBase->probValue =  1.0 / cBase->counter; //prob nova para o c0 (pq diminuiu um caractere)
+
+                    TNode* child = createChild(&root, c);     //criando um filho que estará no contexto1 
                 
-                    /* Criando filho da raiz */
-                    
-                    TNode* child = createChild(&root, c);
-                
-                    if (count == 0){ 
-                        base = child;
-                        count += 1;
-                        root.downPointer = child;
-                        root.context = new Context();
-                        root.context->counter_ro += 1;
-                        root.context->counter = root.context->counter_ro + 1;
+                    if (count == 0){                 //o que esse count conta? nao sei ??????????? qtd de filhos??? 
+                        base = child;                
+                        count += 1;                  
+                        root.downPointer = child;    
+                        root.context = new Context();    
+                        root.context->counter_ro += 1;    
+                        root.context->counter = root.context->counter_ro + 1;  
                     }
                     else{
-                        //cout << root.context->counter << " " << minusCounter << "\n";
                         currentProb_ro = (double)root.context->counter_ro / (root.context->counter - minusCounter);
-                        //cout << "Codificacao do ro: " << currentProb_ro << "\n";
                         root.context->counter_ro += 1;
                         root.context->counter += 2;
                         TNode* lastCreate = root.lastCreate;
@@ -129,9 +121,9 @@ int main(){
                         cout << childCreated->symbol << endl;
                         childCreated->vine = child;
                     }
-                }
-                else{
-                    /* Caso ele nao exista na raiz, vamos percorrer os filhos da raiz */
+                
+                }else{  //o caractere nao existe na raiz? 
+                    
                     TNode* cNode = root.downPointer;
 
                     while(cNode){
@@ -150,21 +142,19 @@ int main(){
                 }
                 break;
             
-            }else{          
+            }else{    //cbase não está apontando pra raiz
                 char currentSymbol = cBase->symbol;
-                //cout << "Acessando node com simbolo: " << currentSymbol << "\n";
+        
                 if (currentSymbol == c){
                     cBase->counter += 1;
                     break;
                 }
 
-                /* Verifica se possui filhos, ou seja, se o contexto existe */
                 TNode* child = nullptr;
-                if(!cBase->downPointer){
-                    //cout << "Criou o filho: " << c << "\n";
+                if(!cBase->downPointer){   //se cBase não possui filhos entao
+                    
                     child = createChild(cBase, c);
                     if (childCreated)childCreated->vine = child;
-                    
                     childCreated = child;            
                     cBase->downPointer = child;
 
@@ -176,33 +166,33 @@ int main(){
                     cBase->context = context;
 
                     
-                }else{
-                    //cout << "Contexto ja existe, procurando filho: \n";
+                }else{     //cBase já tem filho
+
                     /* Se o meu contexto exitir, devemos percorrer
                     os elementos daquele contexto da direita para a esquerda */
-                    TNode* cNode = cBase->downPointer;
+                    TNode* cNode = cBase->downPointer;  //cNode aponta para o contexto filho 
                     bool found = false;
                     int totalMiss = 0;
-                    while(cNode){
+
+                    while(cNode){   //aqui vai pecorrer todos os nós do contexto que cnode está e tentar encontrar o simbolo c
                         char currentSymbol = cNode->symbol;
                         totalMiss += 1;
-                        if(currentSymbol == c){
-                            //cout << "Filho encontrado codificado com" << endl; 
+      
+                        if(currentSymbol == c){                      
                             currentProb = (double)cNode->counter / cBase->context->counter;
-                            //cout << "prob: " << currentProb << "\n"; 
+                            cout << "Filho encontrado codificado com prob: " << currentProb << "\n"; 
+                            //tem que incluir decodificacao
                             cNode->counter += 1;
                             cBase->context->counter++;
                             found = true;
                             foundedChild = cNode;
                             break;
                         }
-                        
                         cNode = cNode->rigthPointer;
                     }
 
-                    /* Se ele nao foi encontrado, vamos adicionar */
-                    if(!found){
-                        //cout << "Simbolo nunca ocorreu nesse contexto\n";
+                    if(!found){     //o simbolo nunca foi encontrado
+                        
                         TNode* lastCreate = cBase->lastCreate;
                         child = createChild(cBase, c);
                         if(childCreated) childCreated->vine = child;
@@ -218,15 +208,12 @@ int main(){
                         cBase->context->counter += 2;
                     }
                     minusCounter = totalMiss;
-                    //cout << "Quantia de remocao na exclusao: " << minusCounter << endl;
                 }
 
-                /* Atualiza o base */
-                
+                /* Atualiza o ponteiro base */
                 if(foundedChild){
                     
-                    
-                    if(foundedChild->heigth < k){
+                    if(foundedChild->heigth < model_order){
                         //cout << "atualizando base" << endl;
                         base = foundedChild;
                         lastBase = nullptr;
@@ -236,11 +223,11 @@ int main(){
                     }
                     attBase = true;
                     break;
-                }
-                else{
+                
+                }else{
                     /* So atualiza o base na primeira adicao */
                     if(!attBase){   
-                        if(child->heigth < k){
+                        if(child->heigth < model_order){
                             base = child;
                             lastBase = nullptr;
                         }else{
@@ -254,8 +241,6 @@ int main(){
                 
                 
             }
-            
-        
         }     
     }
     
