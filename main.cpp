@@ -21,6 +21,24 @@ TNode* createChild(TNode* father, unsigned char symbol){
 }
 
 
+/* Para cada contexto retorna sua vetor de frequencias */
+vector<double>*getFrequenciesContext(TNode* father){
+    vector<double>* frequencies = new vector<double>();
+
+    TNode* currentNode = father->downPointer;
+    double denominator = father->context->counter;
+    double counter_ro = father->context->counter_ro;
+
+    while(currentNode){
+        double numerator = currentNode->counter;
+        frequencies->push_back(numerator/denominator);
+        currentNode = currentNode->rigthPointer;
+    }
+
+    frequencies->push_back(counter_ro / denominator);
+
+    return frequencies;
+}
 
 
 int main(){
@@ -63,6 +81,7 @@ int main(){
     int count_msg = 0;
     for(unsigned char c: data){
         
+        cout << "lendo: " << c << endl;
         double currentProb = 0.0;      //probabilidade atual
         double currentProb_ro = 0.0;   //probabilidade do rô
         int minusCounter = 0;          /* Contador responsavel pela exclusao */
@@ -71,7 +90,7 @@ int main(){
         if(lastBase){          //se lastBase != 0 entao a cBase aponta pra outra coisa
             cBase = lastBase->vine;
         }
-
+        
         lastBase = nullptr;
         TNode* childCreated = nullptr; /* Ultimo vine acessado */
         TNode* foundedChild = nullptr; /* Ultimo filho encontrado*/
@@ -95,8 +114,9 @@ int main(){
                     cBase->probValue =  1.0 / cBase->counter; //prob nova para o c0 (pq diminuiu um caractere)
 
                     TNode* child = createChild(&root, c);     //criando um filho que estará no contexto1 
-                
-                    if (count == 0){                 //o que esse count conta? nao sei ??????????? qtd de filhos??? 
+                    
+                    /* Caso seja o primeiro filho da raiz */
+                    if (count == 0){                
                         base = child;                
                         count += 1;                  
                         root.downPointer = child;    
@@ -128,12 +148,19 @@ int main(){
 
                     while(cNode){
                         if(cNode->symbol == c){
+                            vector<double>*currentFrequencies = getFrequenciesContext(root.downPointer);
+                            cout << "Frequencias em k = 0\n";
+                            for(int i = 0; i < currentFrequencies->size(); i++){
+                                cout << currentFrequencies->at(i) << " ";
+
+                            }
                             currentProb = (double)cNode->counter / root.context->counter;
-                            //cout << cNode->counter << " " << root.context->counter << endl;
-                            //cout << "Codificando (" << c << ") em k == 0 com probabilidade: " << currentProb << "\n";
+                            cout << cNode->counter << " " << root.context->counter << endl;
+                            cout << "Codificando (" << c << ") em k == 0 com probabilidade: " << currentProb << "\n";
                             cNode->counter++;
                             root.context->counter += 1;
                             if(childCreated)childCreated->vine = cNode;
+                            
                             break;
                         }
                         cNode = cNode->rigthPointer;
@@ -152,7 +179,7 @@ int main(){
 
                 TNode* child = nullptr;
                 if(!cBase->downPointer){   //se cBase não possui filhos entao
-                    
+                    cout << "Nao possui filhos, criando.." << endl;
                     child = createChild(cBase, c);
                     if (childCreated)childCreated->vine = child;
                     childCreated = child;            
