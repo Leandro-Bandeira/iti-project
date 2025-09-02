@@ -3,12 +3,16 @@
 #include <string>
 #include <numeric>
 #include <fstream>
+#include <random>
+#include <sstream>
+
 
 #include "Structs.hpp"
 
 using namespace std;
 
-#define model_order 2     //ordem do modelo
+#define model_order 2   //ordem do modelo
+#define MAX_CHAR_GENERATE 10
 
 TNode* createChild(TNode* father, unsigned char symbol){
     TNode* child = new TNode();
@@ -16,30 +20,67 @@ TNode* createChild(TNode* father, unsigned char symbol){
     child->heigth = father->heigth + 1;    
     child->counter += 1;
     child->symbol = symbol;
-    father->lastCreate = child;
+    if(father->lastCreate){
+        father->lastCreate->rigthPointer = child;
+        father->lastCreate = child;
+
+    }else{
+        father->lastCreate = child;
+    }
     return child;
 }
 
 
 /* Para cada contexto retorna sua vetor de frequencias */
-vector<double>*getFrequenciesContext(TNode* father){
-    vector<double>* frequencies = new vector<double>();
+vector<pair<int, int>>* getFrequenciesContext(TNode* father) {
 
+    /* O par representar (ocorrencia, simbolo), o inteiro 256 equivale ao ro*/
+    vector<pair<int, int>>* frequencies = new vector<pair<int, int>>();
+
+    
     TNode* currentNode = father->downPointer;
-    double denominator = father->context->counter;
-    double counter_ro = father->context->counter_ro;
 
-    while(currentNode){
-        double numerator = currentNode->counter;
-        frequencies->push_back(numerator/denominator);
+    
+    while (currentNode) {
+        frequencies->push_back(make_pair(currentNode->counter,
+                                         static_cast<int>(currentNode->symbol)));
         currentNode = currentNode->rigthPointer;
     }
 
-    frequencies->push_back(counter_ro / denominator);
+    // adiciona o ro como símbolo 256
+    frequencies->push_back(make_pair(father->context->counter_ro, 256));
 
     return frequencies;
 }
+/* Codigo responsavel por receber as frequencias e retornar o caracter gerado */
+int spinRoulette(const std::vector<int>& occurrences) {
+    int total = std::accumulate(occurrences.begin(), occurrences.end(), 0);
 
+
+    static std::random_device rd;
+    static std::mt19937 gen(rd());
+    std::uniform_int_distribution<> dist(0, total - 1);
+
+    /* Caso eu tenha  {3, 7, 10} como as ocorrencias, minha distribuicao discreta e de (0, 20)
+    * Caso, r caia entre {0, 1, 2, 3}, o primeiro valor eh escolho e assim por diante */
+    int r = dist(gen);
+    int cumulative = 0;
+    for (int i = 0; i < occurrences.size(); i++) {
+        cumulative += occurrences[i];
+        if (r < cumulative) return i;
+    }
+    return -1;
+}
+
+/* Funcao responsavel para capturar apenas as frequencias */
+std::vector<int> extractFrequencies(const vector<pair<int,int>>& freqTuples) {
+    std::vector<int> freqs;
+    freqs.reserve(freqTuples.size());
+    for (auto& t : freqTuples) {
+        freqs.push_back(t.first); // pega só o counter
+    }
+    return freqs;
+}
 
 int main(){
     
@@ -76,8 +117,9 @@ int main(){
      
     TNode* base = &root;          //base irá apontar sempre para o último nó adicionado/atualizado
     TNode* lastBase = nullptr;    
-    int count = 0;
-    int countDecodRoot = 0; 
+    
+    /* Quantia codificado na raiz*/
+    int countCodRoot = 0; 
     int count_msg = 0;
     for(unsigned char c: data){
         
@@ -104,7 +146,7 @@ int main(){
             
                 if(cBase->alphabet[idx]){         //se o caractere existe ainda na root 
                     cBase->alphabet[c] = false;
-                    countDecodRoot += 1;
+                    countCodRoot += 1;
                     currentProb = cBase->probValue;
                     //=========DEVE-SE INCLUIR A CODIFICACAO AQUI =======================
                     cout << "O caracter (" << c << ") foi codificado com probabilidade: " << currentProb << "\n";
@@ -116,9 +158,8 @@ int main(){
                     TNode* child = createChild(&root, c);     //criando um filho que estará no contexto1 
                     
                     /* Caso seja o primeiro filho da raiz */
-                    if (count == 0){                
-                        base = child;                
-                        count += 1;                  
+                    if (countCodRoot == 1){                
+                        base = child;                                 
                         root.downPointer = child;    
                         root.context = new Context();    
                         root.context->counter_ro += 1;    
@@ -128,12 +169,9 @@ int main(){
                         currentProb_ro = (double)root.context->counter_ro / (root.context->counter - minusCounter);
                         root.context->counter_ro += 1;
                         root.context->counter += 2;
-                        TNode* lastCreate = root.lastCreate;
-                        lastCreate->rigthPointer = child;
-                        root.lastCreate = child;
                     }
                     
-                    if(countDecodRoot == diffElements){ 
+                    if(countCodRoot == diffElements){ 
                         root.context->counter -= root.context->counter_ro; // Remove a presenca do ro em k = 0, caso codifiquemos tudo
                         root.context->counter_ro = 0;
                     }
@@ -141,19 +179,16 @@ int main(){
                         cout << childCreated->symbol << endl;
                         childCreated->vine = child;
                     }
-                
+                    
+                    
                 }else{  //o caractere nao existe na raiz? 
                     
                     TNode* cNode = root.downPointer;
 
                     while(cNode){
                         if(cNode->symbol == c){
-                            vector<double>*currentFrequencies = getFrequenciesContext(root.downPointer);
-                            cout << "Frequencias em k = 0\n";
-                            for(int i = 0; i < currentFrequencies->size(); i++){
-                                cout << currentFrequencies->at(i) << " ";
-
-                            }
+                    
+                           
                             currentProb = (double)cNode->counter / root.context->counter;
                             cout << cNode->counter << " " << root.context->counter << endl;
                             cout << "Codificando (" << c << ") em k == 0 com probabilidade: " << currentProb << "\n";
@@ -178,6 +213,7 @@ int main(){
                 }
 
                 TNode* child = nullptr;
+                cout << "O node com simbolo: " << currentSymbol << endl;
                 if(!cBase->downPointer){   //se cBase não possui filhos entao
                     cout << "Nao possui filhos, criando.." << endl;
                     child = createChild(cBase, c);
@@ -203,7 +239,7 @@ int main(){
 
                     while(cNode){   //aqui vai pecorrer todos os nós do contexto que cnode está e tentar encontrar o simbolo c
                         char currentSymbol = cNode->symbol;
-                        totalMiss += 1;
+                        totalMiss += cNode->counter;
       
                         if(currentSymbol == c){                      
                             currentProb = (double)cNode->counter / cBase->context->counter;
@@ -213,6 +249,16 @@ int main(){
                             cBase->context->counter++;
                             found = true;
                             foundedChild = cNode;
+                            if (childCreated){
+                                childCreated->vine = cNode;
+                            }
+                            /* Se a gente condificar o elemento aqui, subir nos contextos e aumentar os contadores */
+                            TNode* startNode = cNode->vine;
+                            while(!startNode->isroot){
+                                startNode->counter++;
+                                startNode = startNode->vine;
+                            }
+                        
                             break;
                         }
                         cNode = cNode->rigthPointer;
@@ -220,12 +266,12 @@ int main(){
 
                     if(!found){     //o simbolo nunca foi encontrado
                         
-                        TNode* lastCreate = cBase->lastCreate;
+                        //TNode* lastCreate = cBase->lastCreate;
                         child = createChild(cBase, c);
                         if(childCreated) childCreated->vine = child;
                         
                         childCreated = child;
-                        lastCreate->rigthPointer = child;
+                        
                         
                         /* Codificando p */
                         currentProb_ro = (double)cBase->context->counter_ro  / (cBase->context->counter - minusCounter);
@@ -271,5 +317,54 @@ int main(){
         }     
     }
     
+
+    /* Gerando texto a partir da arvore treinada */
+    TNode *currentNode = &root;
+    int count_generate_char = 0;
+
+    stringstream generatedString;
+
+    while(count_generate_char < MAX_CHAR_GENERATE){
+        
+        /* A partir das frequencias capturadas, jogamos na roleta russa viciada para capturar o caractere*/
+        
+        vector<pair<int, int>>* currentFrequencies = getFrequenciesContext(currentNode);
+        vector<int> freqVec = extractFrequencies(*currentFrequencies);
+        //if(currentNode->isroot)cout << "na raiz" << endl;
+        //cout << "tabela de frequencias atual: ";
+        //for(pair<int,int> a: *currentFrequencies){
+          //  cout << "("<< a.first << "," << static_cast<unsigned char>(a.second) << ")";
+        //}
+        cout << endl;
+        int idx = spinRoulette(freqVec);
+        int chosenChar = currentFrequencies->at(idx).second;
+        
+        cout << "chosenChar: " << static_cast<unsigned char>(chosenChar) << endl;
+        /* Caso nao caiamos no ro, gera o caractere e desce na arvore */
+        if(chosenChar != 256){
+            unsigned char generatedChar = static_cast<unsigned char>(chosenChar);
+            generatedString << generatedChar;
+            count_generate_char += 1;
+            /* Encontra o no responsavel por aquele simbolo */
+            TNode* auxNode = currentNode->downPointer;
+            while(auxNode->symbol != generatedChar){
+                auxNode = auxNode->rigthPointer;
+
+            }
+            currentNode = auxNode;
+            /* Precisamos ir subindo ate encontrar algum contexto que consiga existir */
+            while(!currentNode->downPointer){
+                currentNode = currentNode->vine;
+                //cout << "subindo no contexto\n";
+            }
+        }else{
+            /* Caso geremos o ro, devemos subir no contexto */
+            //cout << "Encontrou o ro\n";
+            currentNode = currentNode->vine;
+        }
+    }
+    
+    string generatedText = generatedString.str();
+    cout << "String gerada: " << generatedText << endl;
     return 0;
 }
