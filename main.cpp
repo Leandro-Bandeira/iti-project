@@ -5,6 +5,7 @@
 #include <fstream>
 #include <random>
 #include <sstream>
+#include <iomanip>
 
 
 #include "Structs.hpp"
@@ -82,6 +83,27 @@ std::vector<int> extractFrequencies(const vector<pair<int,int>>& freqTuples) {
     return freqs;
 }
 
+// Função que imprime as probabilidades dos símbolos no contexto de um nó
+void printProbabilitiesContext(TNode* contextNode) {
+    if (!contextNode || !contextNode->context) {
+        std::cout << "Contexto inválido ou sem dados.\n";
+        return;
+    }
+    int total = contextNode->context->counter;
+    std::cout << "Lista de probabilidades para contexto de ordem " << contextNode->heigth << ":\n";
+    TNode* current = contextNode->downPointer;
+    while (current) {
+        double prob = static_cast<double>(current->counter) / total;
+        std::cout << std::setprecision(4) << static_cast<unsigned char>(current->symbol) << " = " << prob << std::endl;
+        current = current->rigthPointer;
+    }
+    // Probabilidade do símbolo especial 'ro' (escape)
+    if (contextNode->context->counter_ro > 0) {
+        double prob_ro = static_cast<double>(contextNode->context->counter_ro) / total;
+        std::cout << "ro = " << prob_ro << std::endl;
+    }
+}
+
 int main(){
     
     TNode root;
@@ -143,14 +165,13 @@ int main(){
             if(cBase->isroot){  //cbase está apontando pra raiz
                 
                 int idx = static_cast<int>(c); 
-            
                 if(cBase->alphabet[idx]){         //se o caractere existe ainda na root 
                     cBase->alphabet[c] = false;
                     countCodRoot += 1;
                     currentProb = cBase->probValue;
-                    //=========DEVE-SE INCLUIR A CODIFICACAO AQUI =======================
                     cout << "O caracter (" << c << ") foi codificado com probabilidade: " << currentProb << "\n";
-                    
+                    // Imprime as probabilidades dos símbolos no contexto atual
+                    printProbabilitiesContext(cBase);
                     //atualizacao dos contextos:
                     cBase->counter--;                         //nao sei oq danado eh isso
                     cBase->probValue =  1.0 / cBase->counter; //prob nova para o c0 (pq diminuiu um caractere)
@@ -196,6 +217,8 @@ int main(){
                             root.context->counter += 1;
                             if(childCreated)childCreated->vine = cNode;
                             
+                            // Imprime as probabilidades dos símbolos no contexto atual
+                            printProbabilitiesContext(cBase);
                             break;
                         }
                         cNode = cNode->rigthPointer;
@@ -209,6 +232,8 @@ int main(){
         
                 if (currentSymbol == c){
                     cBase->counter += 1;
+                    // Imprime as probabilidades dos símbolos no contexto atual
+                    printProbabilitiesContext(cBase);
                     break;
                 }
 
@@ -239,19 +264,18 @@ int main(){
 
                     while(cNode){   //aqui vai pecorrer todos os nós do contexto que cnode está e tentar encontrar o simbolo c
                         char currentSymbol = cNode->symbol;
-                        totalMiss += cNode->counter;
+                        totalMiss += 1;
       
                         if(currentSymbol == c){                      
                             currentProb = (double)cNode->counter / cBase->context->counter;
-                            cout << "Filho encontrado codificado com prob: " << currentProb << "\n"; 
+                            cout << "Filho " << currentSymbol << " encontrado codificado com prob: " << currentProb << "\n"; 
                             //tem que incluir decodificacao
                             cNode->counter += 1;
                             cBase->context->counter++;
                             found = true;
                             foundedChild = cNode;
-                            if (childCreated){
-                                childCreated->vine = cNode;
-                            }
+                            // Imprime as probabilidades dos símbolos no contexto atual
+                            printProbabilitiesContext(cBase);
                             /* Se a gente condificar o elemento aqui, subir nos contextos e aumentar os contadores */
                             TNode* startNode = cNode->vine;
                             while(!startNode->isroot){
