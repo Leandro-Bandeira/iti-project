@@ -5,6 +5,7 @@
 #include <fstream>
 #include <random>
 #include <sstream>
+#include <chrono>
 #include <iomanip>
 
 
@@ -13,7 +14,7 @@
 using namespace std;
 
 #define model_order 2   //ordem do modelo
-#define MAX_CHAR_GENERATE 10
+#define MAX_CHAR_GENERATE 1000
 
 TNode* createChild(TNode* father, unsigned char symbol){
     TNode* child = new TNode();
@@ -86,21 +87,21 @@ std::vector<int> extractFrequencies(const vector<pair<int,int>>& freqTuples) {
 // Função que imprime as probabilidades dos símbolos no contexto de um nó
 void printProbabilitiesContext(TNode* contextNode) {
     if (!contextNode || !contextNode->context) {
-        std::cout << "Contexto inválido ou sem dados.\n";
+        //std:://cout << "Contexto inválido ou sem dados.\n";
         return;
     }
     int total = contextNode->context->counter;
-    std::cout << "Lista de probabilidades para contexto de ordem " << contextNode->heigth << ":\n";
+    //std:://cout << "Lista de probabilidades para contexto de ordem " << contextNode->heigth << ":\n";
     TNode* current = contextNode->downPointer;
     while (current) {
         double prob = static_cast<double>(current->counter) / total;
-        std::cout << std::setprecision(4) << static_cast<unsigned char>(current->symbol) << " = " << prob << std::endl;
+      //  std:://cout << std::setprecision(4) << static_cast<unsigned char>(current->symbol) << " = " << prob << std::endl;
         current = current->rigthPointer;
     }
     // Probabilidade do símbolo especial 'ro' (escape)
     if (contextNode->context->counter_ro > 0) {
         double prob_ro = static_cast<double>(contextNode->context->counter_ro) / total;
-        std::cout << "ro = " << prob_ro << std::endl;
+        //std:://cout << "ro = " << prob_ro << std::endl;
     }
 }
 
@@ -109,7 +110,7 @@ int main(){
     TNode root;
     root.isroot = true;
 
-    std::ifstream file("test.txt", std::ios::binary); 
+    std::ifstream file("test2.txt", std::ios::binary); 
     if (!file.is_open()) {
         std::cerr << "Erro ao abrir arquivo!" << std::endl;
         return 1;
@@ -135,7 +136,7 @@ int main(){
     int diffElements = root.counter;
     root.alphabet = alphabet;
     root.probValue = 1.0 / root.counter;
-    cout << "Primeiro valor de equiprobabilidade: " << root.probValue << "\n"; 
+    ////cout << "Primeiro valor de equiprobabilidade: " << root.probValue << "\n"; 
      
     TNode* base = &root;          //base irá apontar sempre para o último nó adicionado/atualizado
     TNode* lastBase = nullptr;    
@@ -143,9 +144,11 @@ int main(){
     /* Quantia codificado na raiz*/
     int countCodRoot = 0; 
     int count_msg = 0;
+    auto start = std::chrono::high_resolution_clock::now();
+
     for(unsigned char c: data){
         
-        cout << "lendo: " << c << endl;
+        ////cout << "lendo: " << c << endl;
         double currentProb = 0.0;      //probabilidade atual
         double currentProb_ro = 0.0;   //probabilidade do rô
         int minusCounter = 0;          /* Contador responsavel pela exclusao */
@@ -169,7 +172,10 @@ int main(){
                     cBase->alphabet[c] = false;
                     countCodRoot += 1;
                     currentProb = cBase->probValue;
-                    cout << "O caracter (" << c << ") foi codificado com probabilidade: " << currentProb << "\n";
+                    //=========DEVE-SE INCLUIR A CODIFICACAO AQUI =======================
+                    ////cout << "O caracter (" << c << ") foi codificado com probabilidade: " << currentProb << "\n";
+                    
+                    //cout << "O caracter (" << c << ") foi codificado com probabilidade: " << currentProb << "\n";
                     // Imprime as probabilidades dos símbolos no contexto atual
                     printProbabilitiesContext(cBase);
                     //atualizacao dos contextos:
@@ -197,7 +203,7 @@ int main(){
                         root.context->counter_ro = 0;
                     }
                     if(childCreated){
-                        cout << childCreated->symbol << endl;
+                        ////cout << childCreated->symbol << endl;
                         childCreated->vine = child;
                     }
                     
@@ -211,8 +217,8 @@ int main(){
                     
                            
                             currentProb = (double)cNode->counter / root.context->counter;
-                            cout << cNode->counter << " " << root.context->counter << endl;
-                            cout << "Codificando (" << c << ") em k == 0 com probabilidade: " << currentProb << "\n";
+                            ////cout << cNode->counter << " " << root.context->counter << endl;
+                            ////cout << "Codificando (" << c << ") em k == 0 com probabilidade: " << currentProb << "\n";
                             cNode->counter++;
                             root.context->counter += 1;
                             if(childCreated)childCreated->vine = cNode;
@@ -238,9 +244,9 @@ int main(){
                 }
 
                 TNode* child = nullptr;
-                cout << "O node com simbolo: " << currentSymbol << endl;
+                ////cout << "O node com simbolo: " << currentSymbol << endl;
                 if(!cBase->downPointer){   //se cBase não possui filhos entao
-                    cout << "Nao possui filhos, criando.." << endl;
+                    ////cout << "Nao possui filhos, criando.." << endl;
                     child = createChild(cBase, c);
                     if (childCreated)childCreated->vine = child;
                     childCreated = child;            
@@ -264,16 +270,20 @@ int main(){
 
                     while(cNode){   //aqui vai pecorrer todos os nós do contexto que cnode está e tentar encontrar o simbolo c
                         char currentSymbol = cNode->symbol;
-                        totalMiss += 1;
+                        totalMiss += cNode->counter;
       
                         if(currentSymbol == c){                      
                             currentProb = (double)cNode->counter / cBase->context->counter;
-                            cout << "Filho " << currentSymbol << " encontrado codificado com prob: " << currentProb << "\n"; 
+                            ////cout << "Filho encontrado codificado com prob: " << currentProb << "\n"; 
+                            //cout << "Filho " << currentSymbol << " encontrado codificado com prob: " << currentProb << "\n"; 
                             //tem que incluir decodificacao
                             cNode->counter += 1;
                             cBase->context->counter++;
                             found = true;
                             foundedChild = cNode;
+                            if (childCreated){
+                                childCreated->vine = cNode;
+                            }
                             // Imprime as probabilidades dos símbolos no contexto atual
                             printProbabilitiesContext(cBase);
                             /* Se a gente condificar o elemento aqui, subir nos contextos e aumentar os contadores */
@@ -299,7 +309,7 @@ int main(){
                         
                         /* Codificando p */
                         currentProb_ro = (double)cBase->context->counter_ro  / (cBase->context->counter - minusCounter);
-                        cout << "Codificando ro com probabilidade: " << currentProb_ro << endl;
+                        ////cout << "Codificando ro com probabilidade: " << currentProb_ro << endl;
 
                         cBase->context->counter_ro += 1;
                         cBase->context->counter += 2;
@@ -311,11 +321,11 @@ int main(){
                 if(foundedChild){
                     
                     if(foundedChild->heigth < model_order){
-                        //cout << "atualizando base" << endl;
+                        //////cout << "atualizando base" << endl;
                         base = foundedChild;
                         lastBase = nullptr;
                     }else{
-                        //cout << "Nao criou novo filho, mas achou filho\n";
+                        //////cout << "Nao criou novo filho, mas achou filho\n";
                         lastBase = foundedChild;
                     }
                     attBase = true;
@@ -340,6 +350,10 @@ int main(){
             }
         }     
     }
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsed = end - start;
+    double minutes = elapsed.count() / 60.0; // converte segundos para minutos
+    //cout << "PPM-C, k = " << model_order << "\ntime_minutes: " << minutes << endl; 
     
 
     /* Gerando texto a partir da arvore treinada */
@@ -354,16 +368,16 @@ int main(){
         
         vector<pair<int, int>>* currentFrequencies = getFrequenciesContext(currentNode);
         vector<int> freqVec = extractFrequencies(*currentFrequencies);
-        //if(currentNode->isroot)cout << "na raiz" << endl;
-        //cout << "tabela de frequencias atual: ";
+        //if(currentNode->isroot)////cout << "na raiz" << endl;
+        //////cout << "tabela de frequencias atual: ";
         //for(pair<int,int> a: *currentFrequencies){
-          //  cout << "("<< a.first << "," << static_cast<unsigned char>(a.second) << ")";
+          //  ////cout << "("<< a.first << "," << static_cast<unsigned char>(a.second) << ")";
         //}
-        cout << endl;
+        ////cout << endl;
         int idx = spinRoulette(freqVec);
         int chosenChar = currentFrequencies->at(idx).second;
         
-        cout << "chosenChar: " << static_cast<unsigned char>(chosenChar) << endl;
+        ////cout << "chosenChar: " << static_cast<unsigned char>(chosenChar) << endl;
         /* Caso nao caiamos no ro, gera o caractere e desce na arvore */
         if(chosenChar != 256){
             unsigned char generatedChar = static_cast<unsigned char>(chosenChar);
@@ -379,11 +393,11 @@ int main(){
             /* Precisamos ir subindo ate encontrar algum contexto que consiga existir */
             while(!currentNode->downPointer){
                 currentNode = currentNode->vine;
-                //cout << "subindo no contexto\n";
+                //////cout << "subindo no contexto\n";
             }
         }else{
             /* Caso geremos o ro, devemos subir no contexto */
-            //cout << "Encontrou o ro\n";
+            //////cout << "Encontrou o ro\n";
             currentNode = currentNode->vine;
         }
     }
